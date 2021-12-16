@@ -1,0 +1,35 @@
+# v2.1 syntax
+version: '2.1'
+
+volumes:
+  # Postgres Data
+  boilerplate-api-mysql-data:
+    driver: local
+
+  # Redis Data
+  boilerplate-api-redis-data:
+    driver: local
+
+services:
+  mysql:
+    image: mysql:5.7
+    restart: always
+    container_name: boilerplate-api-mysql
+    volumes:
+      - boilerplate-api-mysql-data:/var/lib/mysql:Z
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_ROOT_USER: 'root'
+      MYSQL_PASSWORD: 'secret'
+      MYSQL_ROOT_PASSWORD: 'secret'
+
+  cache:
+    image: redis:4.0
+    container_name: boilerplate-api-redis
+    command: --appendonly yes
+    volumes:
+      - boilerplate-api-redis-data:/data
+    ports:
+      - '6379:6379'

@@ -1,0 +1,71 @@
+image: node:latest
+services:
+  - mysql:5.7
+variables:
+  MYSQL_DATABASE: $DB_NAME
+  MYSQL_ROOT_USER: 'root'
+  MYSQL_PASSWORD: 'secret'
+  MYSQL_ROOT_PASSWORD: 'secret'
+  MYSQL_HOST: mysql
+
+stages:
+  - build
+  - test
+  - pages
+  - deploy
+
+build:
+  stage: build
+  script:
+    - npm install
+  cache:
+    paths:
+      - node_modules/
+  artifacts:
+    expire_in: 1 days
+    when: on_success
+    paths:
+      - node_modules/
+
+test:
+  stage: test
+  coverage: /All files[^|]*\|[^|]*\s+([\d\.]+)/
+  dependencies:
+    - build
+  script:
+    - npm run test:ci
+  cache:
+    paths:
+      - coverage/
+  artifacts:
+    paths:
+      - coverage/
+    when: always
+    reports:
+      junit:
+        - junit.xml
+      cobertura: coverage/cobertura-coverage.xml
+
+pages:
+  stage: pages
+  dependencies:
+    - test
+  script:
+    - mkdir .public
+    - cp -r coverage/* .public
+    - mv .public public
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
+
+deploy:
+  image: ruby:latest
+  stage: deploy
+  only:
+    refs:
+      - master
+  script:
+    - gem install dpl
+    - dpl --provider=heroku --app=hox-boilerplate-api --api-key=$HEROKU_PRODUCTION_API_KEY
